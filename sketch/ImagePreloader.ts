@@ -4,7 +4,8 @@ class ImagePreloader {
     public ImagePreloader() {
     }
     static loadImages() {
-        for (let index = 0; index < 4; index++) {
+
+          for (let index = 0; index < 4; index++) {
             ImagePreloader.preloadedImages['brow'+index] = loadImage(`images/eyebrows/brow${index+1}.png`)
         }
         for (let index = 0; index < 7; index++) {
@@ -22,8 +23,16 @@ class ImagePreloader {
         for (let index = 0; index < 25; index++) {
             ImagePreloader.preloadedImages['hair'+index] = loadImage(`images/hair/hair${index+1}.png`)
         }
+
+     
         for (let index = 0; index < 6; index++) {
             ImagePreloader.preloadedImages['mouth'+index] = loadImage(`images/mouth/mouth${index+1}.png`)
         }
+
+        for (let index = 0; index < 8; index++) {
+            ImagePreloader.preloadedImages['weapons' + index] = loadImage(`images/weapons/weapons${index + 1}.png`)
+        }
+
+
     }
 }
