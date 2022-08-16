@@ -32,8 +32,8 @@ class GameRunner {
         ]
         this.currentPlayer = this.players[0]
         let button
-        button = createButton('Next')
-        button.position(windowWidth-100, windowHeight-150)
+        button = createButton('NEXT')
+        button.position(windowWidth-100, windowHeight-400)
         button.mousePressed(()=>{
           if(this.gamePhase == "throw away card") return
 
@@ -266,13 +266,20 @@ class GameRunner {
     }
     drawGameText() {
       fill(255)
-      textSize(12)
-      text(this.gamePhase, windowWidth - 200, windowHeight-100)
-      text("Player " + this.currentPlayer.playerNumber, windowWidth - 200, 30)
-      text("Life: " + this.currentPlayer.life, windowWidth - 200, 50)
-      text("Street Cred: " + this.currentPlayer.streetCred, windowWidth - 200, 70)
-      text("Graveyard Size: " + this.currentPlayer.graveYard.length, windowWidth - 200, 90)
-      text("New Street Cred Earned: " + this.lastEarnedStreetCred, windowWidth - 200, windowHeight-120)
+      textSize(24)
+      text(this.gamePhase, windowWidth - 400, windowHeight-500)
+      textSize(20)
+      text("Player " + this.players[1].playerNumber, windowWidth - 200, 30)
+      text("Life: " + this.players[1].life, windowWidth - 200, 50)
+      text("Street Cred: " + this.players[1].streetCred, windowWidth - 200, 70)
+      text("Graveyard Size: " + this.players[1].graveYard.length, windowWidth - 200, 90)
+      text("New Street Cred Earned: " + this.lastEarnedStreetCred, windowWidth - 400, windowHeight-460)
+      textSize(20)
+      text("Player " + this.players[0].playerNumber, windowWidth - 200, 600)
+      text("Life: " + this.players[0].life, windowWidth - 200, 620)
+      text("Street Cred: " + this.players[0].streetCred, windowWidth - 200, 640)
+      text("Graveyard Size: " + this.players[0].graveYard.length, windowWidth - 200, 660)
+     
     }
 
     drawBoard() {

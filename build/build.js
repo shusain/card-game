@@ -3,7 +3,7 @@ var Card = (function () {
         this.streetCredCost = Math.ceil(Math.random() * 4);
         this.x = 0;
         this.y = 0;
-        this.summoningSickness = true;
+        this.summoningSickness = false;
         this.face = Math.floor(random(0, 6));
         this.brow = Math.floor(random(0, 3));
         this.glasses = Math.floor(random(0, 10));
@@ -30,6 +30,9 @@ var Card = (function () {
         else
             return true;
     };
+    Card.prototype.getCenter = function () {
+        return { x: this.x + this.cardImage.width * Card.SCALE / 2, y: this.y + this.cardImage.height * Card.SCALE / 2 };
+    };
     Card.prototype.drawBackgroundOfCard = function (highlighted) {
         if (highlighted === void 0) { highlighted = false; }
         this.cardImage.background("#ff7f0f");
@@ -37,11 +40,11 @@ var Card = (function () {
         this.cardImage.strokeWeight(10);
         highlighted ? this.cardImage.stroke(0, 200, 255) : this.cardImage.stroke(0);
         this.cardImage.rect(0, 0, this.cardImage.width, this.cardImage.height);
+        this.cardImage.stroke(0);
     };
     Card.prototype.draw = function (highlighted) {
         if (highlighted === void 0) { highlighted = false; }
         this.drawBackgroundOfCard(highlighted);
-        this.cardImage.stroke(0);
         this.cardImage.rect(29, 75, 473, 324);
         this.cardImage.strokeWeight(3);
         this.cardImage.textSize(36);
@@ -54,6 +57,10 @@ var Card = (function () {
         this.cardImage.image(ImagePreloader.preloadedImages['glasses' + this.glasses], -132, 0);
         this.cardImage.image(ImagePreloader.preloadedImages['hair' + this.hair], -132, 0);
         this.cardImage.image(ImagePreloader.preloadedImages['mouth' + this.mouth], -132, 0);
+        if (this.summoningSickness) {
+            this.cardImage.fill(0, 0, 0, 125);
+            this.cardImage.rect(0, 0, this.cardImage.width, this.cardImage.height);
+        }
         push();
         scale(Card.SCALE);
         image(this.cardImage, this.x / Card.SCALE, this.y / Card.SCALE);
@@ -110,6 +117,7 @@ var GameRunner = (function () {
             "choose defenders",
             "fight",
             "final play card",
+            "throw away card",
             "change players"
         ];
         this.gamePhase = "pregame";
@@ -121,12 +129,18 @@ var GameRunner = (function () {
         ];
         this.currentPlayer = this.players[0];
         var button;
-        button = createButton('Next');
-        button.position(windowWidth - 100, windowHeight - 150);
+        button = createButton('NEXT');
+        button.position(windowWidth - 100, windowHeight - 400);
         button.mousePressed(function () {
-            _this.goToNextPhase();
+            if (_this.gamePhase == "throw away card")
+                return;
+            if (_this.gamePhase != "draw")
+                _this.changePhase();
+            _this.processPhase();
         });
         document.addEventListener('click', this.mousePressedHandler.bind(this));
+        document.addEventListener('dblclick', this.doubleClickHandler.bind(this));
+        console.log("Game constructed");
     }
     Object.defineProperty(GameRunner.prototype, "otherPlayer", {
         get: function () {
@@ -140,34 +154,46 @@ var GameRunner = (function () {
         enumerable: true,
         configurable: true
     });
-    GameRunner.prototype.goToNextPhase = function () {
+    GameRunner.prototype.changePhase = function () {
         if (this.GAME_PHASES.indexOf(this.gamePhase) + 1 < this.GAME_PHASES.length)
             this.gamePhase = this.GAME_PHASES[this.GAME_PHASES.indexOf(this.gamePhase) + 1];
         else
             this.gamePhase = this.GAME_PHASES[1];
+    };
+    GameRunner.prototype.processPhase = function () {
         if (this.gamePhase == "draw") {
             this.currentPlayer.drawACard();
             this.attackers = [];
             this.defenders = [];
             this.lastEarnedStreetCred = this.currentPlayer.rollForStreetCred();
-            this.goToNextPhase();
+            this.changePhase();
         }
-        else if (this.gamePhase == "play card") {
+        if (this.gamePhase == "play card") {
+            if (this.currentPlayer.streetCred == 0)
+                this.changePhase();
         }
-        else if (this.gamePhase == "choose attackers") {
+        if (this.gamePhase == "choose attackers") {
         }
-        else if (this.gamePhase == "choose defenders") {
+        if (this.gamePhase == "choose defenders") {
+            if (this.attackers.length <= 0)
+                this.changePhase();
         }
-        else if (this.gamePhase == "fight") {
+        if (this.gamePhase == "fight") {
             this.fight();
         }
-        else if (this.gamePhase == "final play card") {
+        if (this.gamePhase == "final play card") {
+            if (this.currentPlayer.streetCred == 0)
+                this.changePhase();
         }
-        else if (this.gamePhase == "change players") {
-            console.log("Changing players");
+        if (this.gamePhase == "throw away card") {
+            if (this.currentPlayer.hand.length < 8)
+                this.changePhase();
+        }
+        if (this.gamePhase == "change players") {
             this.currentPlayer.board.forEach(function (card) { return card.summoningSickness = false; });
-            this.currentPlayer = this.players[0] == this.currentPlayer ? this.players[1] : this.players[0];
+            this.currentPlayer = this.otherPlayer;
             this.currentPlayer.board.forEach(function (card) { return card.tapped = false; });
+            this.changePhase();
         }
         console.log(this.gamePhase);
     };
@@ -175,48 +201,7 @@ var GameRunner = (function () {
         this.players.forEach(function (player) { return player.drawAHandOfCards(); });
         this.gamePhase = "draw";
     };
-    GameRunner.prototype.draw = function () {
-        if (this.gamePhase == "play card") {
-            if (this.selectedCard && this.currentPlayer.hand.indexOf(this.selectedCard) != -1 && this.selectedCard.canBePlayed(this.currentPlayer.board, this.currentPlayer)) {
-                this.currentPlayer.board.push(this.selectedCard);
-                this.currentPlayer.streetCred -= this.selectedCard.calculateCost();
-                this.currentPlayer.hand.splice(this.currentPlayer.hand.indexOf(this.selectedCard), 1);
-                this.selectedCard = null;
-            }
-        }
-        if (this.gamePhase != "pregame") {
-            this.drawBoard();
-            this.drawPlayersHand(this.players[0]);
-            this.drawPlayersHand(this.players[1], true);
-            this.drawGameText();
-        }
-    };
-    GameRunner.prototype.drawGameText = function () {
-        fill(255);
-        text(this.gamePhase, windowWidth - 200, windowHeight - 100);
-        text("Player " + this.currentPlayer.playerNumber, windowWidth - 200, 30);
-        text("Life: " + this.currentPlayer.life, windowWidth - 200, 50);
-        text("Street Cred: " + this.currentPlayer.streetCred, windowWidth - 200, 70);
-        text("Graveyard Size: " + this.currentPlayer.graveYard.length, windowWidth - 200, 90);
-        if (this.gamePhase == "roll for cred") {
-            text("New Street Cred Earned: " + this.lastEarnedStreetCred, windowWidth - 200, windowHeight - 120);
-        }
-    };
-    GameRunner.prototype.drawBoard = function () {
-        this.drawPlayersBoard(this.players[0]);
-        this.drawPlayersBoard(this.players[1], true);
-    };
-    GameRunner.prototype.drawPlayersBoard = function (player, drawOnTop) {
-        var _this = this;
-        if (drawOnTop === void 0) { drawOnTop = false; }
-        player.board.forEach(function (card) {
-            var yOffset = drawOnTop ? -100 : 100;
-            card.y = windowHeight / 2 + yOffset;
-            card.x = windowWidth / 2 + player.board.indexOf(card) * 100 - player.board.length / 2 * 100;
-            card.draw(_this.attackers.indexOf(card) != -1);
-        });
-    };
-    GameRunner.prototype.handlePlayCard = function () {
+    GameRunner.prototype.handleSelectCard = function () {
         var _this = this;
         this.currentPlayer.hand.forEach(function (card) {
             if (card.checkMouseIsOver()) {
@@ -224,7 +209,28 @@ var GameRunner = (function () {
             }
         });
     };
-    GameRunner.prototype.handleChoosingAttackers = function () {
+    GameRunner.prototype.playCardToBoard = function () {
+        if (this.gamePhase == "play card" || this.gamePhase == "final play card") {
+            if (this.selectedCard && this.currentPlayer.hand.indexOf(this.selectedCard) != -1 && this.selectedCard.canBePlayed(this.currentPlayer.board, this.currentPlayer)) {
+                this.currentPlayer.board.push(this.selectedCard);
+                this.selectedCard.summoningSickness = true;
+                this.currentPlayer.streetCred -= this.selectedCard.calculateCost();
+                this.currentPlayer.hand.splice(this.currentPlayer.hand.indexOf(this.selectedCard), 1);
+                this.selectedCard = null;
+            }
+        }
+    };
+    GameRunner.prototype.playCardToGraveyard = function () {
+        if (this.gamePhase == "throw away card") {
+            if (this.selectedCard && this.currentPlayer.hand.indexOf(this.selectedCard) != -1) {
+                this.currentPlayer.graveYard.push(this.selectedCard);
+                this.currentPlayer.hand.splice(this.currentPlayer.hand.indexOf(this.selectedCard), 1);
+                this.selectedCard = null;
+                this.processPhase();
+            }
+        }
+    };
+    GameRunner.prototype.chooseAttackers = function () {
         var _this = this;
         if (this.currentPlayer.board.length > 0) {
             this.currentPlayer.board.forEach(function (card) {
@@ -235,14 +241,15 @@ var GameRunner = (function () {
             });
         }
         else {
-            this.gamePhase = "final play card";
+            this.changePhase();
+            this.processPhase();
         }
     };
     GameRunner.prototype.handleChooseDefenders = function () {
         var _this = this;
         if (this.attackers.length > 0 && this.otherPlayer.board.length > 0) {
             this.otherPlayer.board.forEach(function (card) {
-                if (card.checkMouseIsOver() && _this.defenders.filter(function (defenderMatch) { return defenderMatch.defendingCard == card; }).length == 0) {
+                if (card.checkMouseIsOver() && _this.defenders.filter(function (defenderMatch) { return defenderMatch.defendingCard == card; }).length == 0 && !card.tapped) {
                     _this.lastSelectedDefender = card;
                 }
             });
@@ -254,17 +261,27 @@ var GameRunner = (function () {
                     });
                 }
             });
+            console.log(this.defenders);
         }
         else {
-            this.goToNextPhase();
+            this.changePhase();
+            this.processPhase();
+        }
+    };
+    GameRunner.prototype.doubleClickHandler = function () {
+        if (this.gamePhase == "play card" || this.gamePhase == "final play card") {
+            this.playCardToBoard();
+        }
+        if (this.gamePhase == "throw away card") {
+            this.playCardToGraveyard();
         }
     };
     GameRunner.prototype.mousePressedHandler = function () {
-        if (this.gamePhase == "play card" || this.gamePhase == "final play card") {
-            this.handlePlayCard();
+        if (this.gamePhase == "play card" || this.gamePhase == "final play card" || this.gamePhase == "throw away card") {
+            this.handleSelectCard();
         }
         else if (this.gamePhase == "choose attackers") {
-            this.handleChoosingAttackers();
+            this.chooseAttackers();
         }
         else if (this.gamePhase == "choose defenders") {
             this.handleChooseDefenders();
@@ -295,25 +312,81 @@ var GameRunner = (function () {
                     _this.otherPlayer.life -= attackCard.attack;
                 }
             });
+            this.defenders = [];
         }
         else {
-            this.goToNextPhase();
+            this.changePhase();
+            this.processPhase();
         }
+    };
+    GameRunner.prototype.draw = function () {
+        if (this.gamePhase != "pregame") {
+            this.drawBoard();
+            this.drawPlayersHand(this.players[0]);
+            this.drawPlayersHand(this.players[1], true);
+            this.drawGameText();
+            if (this.defenders) {
+                this.drawDefenderLine();
+            }
+        }
+    };
+    GameRunner.prototype.drawDefenderLine = function () {
+        this.defenders.forEach(function (defenderMatch) {
+            var defendingCard = defenderMatch.defendingCard, attackingCard = defenderMatch.attackingCard;
+            var _a = defendingCard.getCenter(), x = _a.x, y = _a.y;
+            var _b = attackingCard.getCenter(), x2 = _b.x, y2 = _b.y;
+            strokeWeight(3);
+            stroke(255, 0, 0);
+            line(x, y, x2, y2);
+            strokeWeight(0);
+        });
+    };
+    GameRunner.prototype.drawGameText = function () {
+        fill(255);
+        textSize(24);
+        text(this.gamePhase, windowWidth - 400, windowHeight - 500);
+        textSize(20);
+        text("Player " + this.players[1].playerNumber, windowWidth - 200, 30);
+        text("Life: " + this.players[1].life, windowWidth - 200, 50);
+        text("Street Cred: " + this.players[1].streetCred, windowWidth - 200, 70);
+        text("Graveyard Size: " + this.players[1].graveYard.length, windowWidth - 200, 90);
+        text("New Street Cred Earned: " + this.lastEarnedStreetCred, windowWidth - 400, windowHeight - 460);
+        textSize(20);
+        text("Player " + this.players[0].playerNumber, windowWidth - 200, 600);
+        text("Life: " + this.players[0].life, windowWidth - 200, 620);
+        text("Street Cred: " + this.players[0].streetCred, windowWidth - 200, 640);
+        text("Graveyard Size: " + this.players[0].graveYard.length, windowWidth - 200, 660);
+    };
+    GameRunner.prototype.drawBoard = function () {
+        this.drawPlayersBoard(this.players[0]);
+        this.drawPlayersBoard(this.players[1], true);
+    };
+    GameRunner.prototype.drawPlayersBoard = function (player, drawOnTop) {
+        var _this = this;
+        if (drawOnTop === void 0) { drawOnTop = false; }
+        player.board.forEach(function (card) {
+            var yOffset = drawOnTop ? -100 : 100;
+            card.y = windowHeight / 2 + yOffset;
+            card.x = windowWidth / 2 + player.board.indexOf(card) * 150 - player.board.length / 2 * 150;
+            card.draw(_this.attackers.indexOf(card) != -1);
+        });
     };
     GameRunner.prototype.drawPlayersHand = function (player, drawOnTop) {
         var _this = this;
         if (drawOnTop === void 0) { drawOnTop = false; }
-        player.hand.forEach(function (card) {
+        var displayArray = player.hand.slice();
+        var isCardHovered = displayArray.filter(function (card) { return card.checkMouseIsOver(); });
+        if (player == this.currentPlayer && isCardHovered.length > 0) {
+            displayArray.sort(function (a, b) {
+                return Math.pow(b.getCenter().x - mouseX, 2) - Math.pow(a.getCenter().x - mouseX, 2);
+            });
+        }
+        displayArray.forEach(function (card) {
             card.x = windowWidth / 2 + player.hand.indexOf(card) * 100 - player.hand.length / 2 * 100;
-            if (drawOnTop) {
-                card.y = 100;
-            }
-            else {
-                card.y = windowHeight - 300;
-            }
+            card.y = drawOnTop ? 10 : windowHeight - 100;
             var highlighted = false;
             if (_this.selectedCard == card) {
-                card.y -= 100;
+                card.y += drawOnTop ? 100 : -100;
                 highlighted = true;
             }
             card.draw(highlighted);
@@ -348,6 +421,12 @@ var ImagePreloader = (function () {
         for (var index = 0; index < 6; index++) {
             ImagePreloader.preloadedImages['mouth' + index] = loadImage("images/mouth/mouth" + (index + 1) + ".png");
         }
+        for (var index = 0; index < 8; index++) {
+            ImagePreloader.preloadedImages['weapons' + index] = loadImage("images/weapons/weapons" + (index + 1) + ".png");
+        }
+        for (var index = 0; index < 8; index++) {
+            ImagePreloader.preloadedImages['board' + index] = loadImage("images/table/table.png");
+        }
     };
     ImagePreloader.preloadedImages = {};
     return ImagePreloader;
@@ -379,7 +458,7 @@ var Player = (function () {
         }
     };
     Player.prototype.rollForStreetCred = function () {
-        var newStreetCred = Math.floor(Math.random() * 5);
+        var newStreetCred = Math.floor(Math.random() * 5) + 1;
         this.streetCred += newStreetCred;
         return newStreetCred;
     };
@@ -401,13 +480,56 @@ var __extends = (this && this.__extends) || (function () {
         d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
     };
 })();
+var SpecialCard = (function (_super) {
+    __extends(SpecialCard, _super);
+    function SpecialCard() {
+        return _super !== null && _super.apply(this, arguments) || this;
+    }
+    SpecialCard.prototype.calculateCost = function () {
+        return 0;
+    };
+    return SpecialCard;
+}(Card));
 var WeaponCard = (function (_super) {
     __extends(WeaponCard, _super);
     function WeaponCard() {
-        return _super !== null && _super.apply(this, arguments) || this;
+        var _this = _super !== null && _super.apply(this, arguments) || this;
+        _this.weapons = Math.floor(random(0, 8));
+        return _this;
     }
     WeaponCard.prototype.calculateCost = function () {
-        return 0;
+        return 5;
+    };
+    WeaponCard.prototype.getCenter = function () {
+        return { x: this.x + this.cardImage.width * Card.SCALE / 2, y: this.y + this.cardImage.height * Card.SCALE / 2 };
+    };
+    WeaponCard.prototype.drawBackgroundOfCard = function (highlighted) {
+        if (highlighted === void 0) { highlighted = false; }
+        this.cardImage.background("#ffee00");
+        this.cardImage.noFill();
+        this.cardImage.strokeWeight(10);
+        highlighted ? this.cardImage.stroke(0, 200, 255) : this.cardImage.stroke(0);
+        this.cardImage.rect(0, 0, this.cardImage.width, this.cardImage.height);
+        this.cardImage.stroke(0);
+    };
+    WeaponCard.prototype.draw = function (highlighted) {
+        if (highlighted === void 0) { highlighted = false; }
+        this.drawBackgroundOfCard(highlighted);
+        this.cardImage.rect(29, 75, 473, 324);
+        this.cardImage.strokeWeight(3);
+        this.cardImage.textSize(36);
+        this.cardImage.textFont("Arial");
+        this.cardImage.text("WEAPON", 40, 50);
+        this.cardImage.text(this.attack + "/" + this.defense + " -- " + this.calculateCost() + " cred", 300, 50);
+        this.cardImage.image(ImagePreloader.preloadedImages['weapons' + this.weapons], -450, -20);
+        if (this.summoningSickness) {
+            this.cardImage.fill(0, 0, 0, 125);
+            this.cardImage.rect(0, 0, this.cardImage.width, this.cardImage.height);
+        }
+        push();
+        scale(Card.SCALE);
+        image(this.cardImage, this.x / Card.SCALE, this.y / Card.SCALE);
+        pop();
     };
     return WeaponCard;
 }(Card));
@@ -423,7 +545,7 @@ function windowResized() {
     resizeCanvas(windowWidth, windowHeight);
 }
 function draw() {
-    background(125);
+    background('#006cff');
     game.draw();
 }
 //# sourceMappingURL=build.js.map

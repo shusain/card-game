@@ -33,6 +33,8 @@ class ImagePreloader {
             ImagePreloader.preloadedImages['weapons' + index] = loadImage(`images/weapons/weapons${index + 1}.png`)
         }
 
-
+        for (let index = 0; index < 8; index++) {
+            ImagePreloader.preloadedImages['board' + index] = loadImage(`images/table/table.png`)
+        }
     }
 }

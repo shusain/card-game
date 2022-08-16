@@ -19,6 +19,6 @@ function windowResized() {
 function draw() {
   
    // CLEAR BACKGROUND
-  background(125);
+  background('#006cff');
   game.draw()
 }
