@@ -14,7 +14,7 @@ class WeaponCard extends Card {
         
         this.cardImage.background("#ffee00")
         this.cardImage.noFill()
-        this.cardImage.strokeWeight(10)
+        this.cardImage.strokeWeight(5)
         highlighted ? this.cardImage.stroke(0, 200, 255) : this.cardImage.stroke(0)
         this.cardImage.rect(0,0,this.cardImage.width,this.cardImage.height)
         this.cardImage.stroke(0)
@@ -27,6 +27,7 @@ class WeaponCard extends Card {
         this.cardImage.textSize(36)
         this.cardImage.textFont("Arial")
         this.cardImage.text("WEAPON",40,50)
+        this.cardImage.text( "Attach to Homies Gain ATK", 40, 500)
         this.cardImage.text(this.attack + "/" + this.defense + " -- " + this.calculateCost() + " cred",300,50)
         this.cardImage.image(ImagePreloader.preloadedImages['weapons'+this.weapons],-450,-20)
         if(this.summoningSickness) {

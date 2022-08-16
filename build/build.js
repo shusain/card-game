@@ -74,7 +74,8 @@ var CardTypes;
     CardTypes[CardTypes["Homie"] = 0] = "Homie";
     CardTypes[CardTypes["Battlefield"] = 1] = "Battlefield";
     CardTypes[CardTypes["Weapon"] = 2] = "Weapon";
-    CardTypes[CardTypes["On_The_Spot"] = 3] = "On_The_Spot";
+    CardTypes[CardTypes["SpecialCard"] = 3] = "SpecialCard";
+    CardTypes[CardTypes["On_The_Spot"] = 4] = "On_The_Spot";
 })(CardTypes || (CardTypes = {}));
 var CryptoHomieGame = (function () {
     function CryptoHomieGame() {
@@ -95,9 +96,13 @@ var Deck = (function () {
             var card = new Card();
             newDeck.push(card);
         }
-        var myWeapon = new WeaponCard();
-        newDeck.push(myWeapon);
-        return newDeck;
+        for (var i = 0; i < 30; i++) {
+            var myWeapon = new WeaponCard();
+            newDeck.push(myWeapon);
+            var mySpecial = new SpecialCard();
+            newDeck.push(mySpecial);
+            return newDeck;
+        }
     };
     return Deck;
 }());
@@ -424,8 +429,11 @@ var ImagePreloader = (function () {
         for (var index = 0; index < 8; index++) {
             ImagePreloader.preloadedImages['weapons' + index] = loadImage("images/weapons/weapons" + (index + 1) + ".png");
         }
-        for (var index = 0; index < 8; index++) {
-            ImagePreloader.preloadedImages['board' + index] = loadImage("images/table/table.png");
+        for (var index = 0; index < 4; index++) {
+            ImagePreloader.preloadedImages['special' + index] = loadImage("images/special/special" + (index + 1) + ".png");
+        }
+        for (var index = 0; index < 1; index++) {
+            ImagePreloader.preloadedImages['table' + index] = loadImage("images/table/table.png");
         }
     };
     ImagePreloader.preloadedImages = {};
@@ -458,7 +466,7 @@ var Player = (function () {
         }
     };
     Player.prototype.rollForStreetCred = function () {
-        var newStreetCred = Math.floor(Math.random() * 5) + 1;
+        var newStreetCred = Math.floor(Math.random() * 2) + 1;
         this.streetCred += newStreetCred;
         return newStreetCred;
     };
@@ -483,10 +491,44 @@ var __extends = (this && this.__extends) || (function () {
 var SpecialCard = (function (_super) {
     __extends(SpecialCard, _super);
     function SpecialCard() {
-        return _super !== null && _super.apply(this, arguments) || this;
+        var _this = _super !== null && _super.apply(this, arguments) || this;
+        _this.special = Math.floor(random(0, 4));
+        return _this;
     }
     SpecialCard.prototype.calculateCost = function () {
-        return 0;
+        return 5;
+    };
+    SpecialCard.prototype.getCenter = function () {
+        return { x: this.x + this.cardImage.width * Card.SCALE / 2, y: this.y + this.cardImage.height * Card.SCALE / 2 };
+    };
+    SpecialCard.prototype.drawBackgroundOfCard = function (highlighted) {
+        if (highlighted === void 0) { highlighted = false; }
+        this.cardImage.background("#00FFFF");
+        this.cardImage.noFill();
+        this.cardImage.strokeWeight(10);
+        highlighted ? this.cardImage.stroke(0, 200, 255) : this.cardImage.stroke(0);
+        this.cardImage.rect(0, 0, this.cardImage.width, this.cardImage.height);
+        this.cardImage.stroke(0);
+    };
+    SpecialCard.prototype.draw = function (highlighted) {
+        if (highlighted === void 0) { highlighted = false; }
+        this.drawBackgroundOfCard(highlighted);
+        this.cardImage.rect(29, 75, 473, 324);
+        this.cardImage.strokeWeight(3);
+        this.cardImage.textSize(36);
+        this.cardImage.textFont("Arial");
+        this.cardImage.text("Special", 40, 50);
+        this.cardImage.text("Medic Gives  LifePoints", 40, 500);
+        this.cardImage.text(this.attack + "/" + this.defense + " -- " + this.calculateCost() + " cred", 300, 50);
+        this.cardImage.image(ImagePreloader.preloadedImages['special' + this.special], 0, 0);
+        if (this.summoningSickness) {
+            this.cardImage.fill(0, 0, 0, 125);
+            this.cardImage.rect(0, 0, this.cardImage.width, this.cardImage.height);
+        }
+        push();
+        scale(Card.SCALE);
+        image(this.cardImage, this.x / Card.SCALE, this.y / Card.SCALE);
+        pop();
     };
     return SpecialCard;
 }(Card));
@@ -507,7 +549,7 @@ var WeaponCard = (function (_super) {
         if (highlighted === void 0) { highlighted = false; }
         this.cardImage.background("#ffee00");
         this.cardImage.noFill();
-        this.cardImage.strokeWeight(10);
+        this.cardImage.strokeWeight(5);
         highlighted ? this.cardImage.stroke(0, 200, 255) : this.cardImage.stroke(0);
         this.cardImage.rect(0, 0, this.cardImage.width, this.cardImage.height);
         this.cardImage.stroke(0);
@@ -520,6 +562,7 @@ var WeaponCard = (function (_super) {
         this.cardImage.textSize(36);
         this.cardImage.textFont("Arial");
         this.cardImage.text("WEAPON", 40, 50);
+        this.cardImage.text("Attach to Homies Gain ATK", 40, 500);
         this.cardImage.text(this.attack + "/" + this.defense + " -- " + this.calculateCost() + " cred", 300, 50);
         this.cardImage.image(ImagePreloader.preloadedImages['weapons' + this.weapons], -450, -20);
         if (this.summoningSickness) {
@@ -545,7 +588,7 @@ function windowResized() {
     resizeCanvas(windowWidth, windowHeight);
 }
 function draw() {
-    background('#006cff');
+    background("#0055ff");
     game.draw();
 }
 //# sourceMappingURL=build.js.map

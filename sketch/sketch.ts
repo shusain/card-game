@@ -1,5 +1,5 @@
 
-let game:CryptoHomieGame;
+let game: CryptoHomieGame;
 
 // P5 WILL AUTOMATICALLY USE GLOBAL MODE IF A DRAW() FUNCTION IS DEFINED
 function setup() {
@@ -17,8 +17,8 @@ function windowResized() {
 
 // p5 WILL HANDLE REQUESTING ANIMATION FRAMES FROM THE BROWSER AND WIL RUN DRAW() EACH ANIMATION FROME
 function draw() {
-  
-   // CLEAR BACKGROUND
-  background('#006cff');
+
+  // CLEAR BACKGROUND
+  background("#0055ff");
   game.draw()
 }
